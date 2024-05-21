@@ -41,3 +41,4 @@ Meter Data: The primary dataset use for this analysis is the "Meter Data.xlsx" s
 
 ### K-Means Clustering Analysis
 
+![k_means_scree](https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/c9963bd6-175a-412b-99b6-5739b57ccc5f)
