@@ -1,0 +1,608 @@
+---
+title: "Clustering Analysis and Visualization Using R"
+author: "Christian Scully"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(factoextra)
+library(cluster)
+library(useful)
+library(fpc)
+library(MASS)
+library(mclust)
+library(readxl)
+library(stats)
+library(ggplot2)
+```
+
+
+```{r init}
+meter <- read_excel("D:/portfolio_projects/data/Meter Data.xlsx", sheet = "D")
+
+set.seed(123) # Set seed for reproducibility
+
+v_keep <- c(
+  1:43
+)
+M <- meter[,v_keep]
+M
+
+v <- c(3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3)
+initial_centers <- matrix(
+  data = c(v,-v,abs(v),-abs(v)),
+  ncol = 43,
+  nrow = 3,
+  byrow = TRUE
+)
+
+options(digits = 2)
+expand.grid(c(-3,3),c(-3,3),c(-3,3))
+
+# Scale the data
+scale_M <- scale(M)
+
+prcomp_M <- prcomp(scale_M)
+```
+
+## K-means
+
+```{r kmeans}
+
+kmeans_meter_1 <- kmeans(
+  x = scale_M,
+  centers = initial_centers
+)
+kmeans_meter_1
+
+```
+
+```{r kmeans_plots}
+km1 <-factoextra::fviz_nbclust(
+    x = scale_M,
+    FUNcluster = kmeans,
+    method = "wss",
+  )
+# Add a title and subtitle
+km1 + labs(title = "K-means Scree Plot", subtitle = "We can see the optimal amount of clusters is three.")
+useful::plot.kmeans(
+  x = kmeans_meter_1,
+  data = scale_M  
+)
+
+cluster::clusplot(
+  scale_M,
+  kmeans_meter_1$cluster,
+  color=TRUE,
+  shade=TRUE,
+  labels=2,
+  lines=0,
+  main = "k-means clusters"
+)
+
+fpc::plotcluster(
+  x = scale_M,
+  clvecd = kmeans_meter_1$cluster
+)
+```
+
+
+Looking at our plots above we can see that the elbow on the scree plot shows that we should have three groups as they capture the majority of the explained variance and are therefore the best to utilize. Then we visualize what those three groups would look like. We are able to see that utilizing three groups we are able to see a clear distinction in the groups. We can also see from the plot with the confidence ellipses that they are well separated.
+
+## Hierarchical Clustering
+
+
+```{r Hierarchical}
+# Define distance metrics and hierarchical clustering methods
+v_dist <- c("euclidean", "manhattan", "minkowski", "canberra", "maximum", "binary")
+v_hclust <- c("ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid", "single")
+
+# Calculate distance matrices
+dist_M <- lapply(v_dist, function(y) dist(scale(M), method = y))
+names(dist_M) <- v_dist
+
+# Perform hierarchical clustering
+L_hclust <- list()
+for (j in v_dist) {
+  for (k in v_hclust) {
+    L_hclust[[j]][[k]] <- hclust(d = dist_M[[j]], method = k)
+  }
+}
+
+# Initialize matrix to store coefficients
+M_coef.hclust <- matrix(NA, nrow = length(v_dist), ncol = length(v_hclust))
+rownames(M_coef.hclust) <- v_dist
+colnames(M_coef.hclust) <- v_hclust
+
+# Ensure heights are sorted and calculate coefficients
+for (j in v_dist) {
+  for (k in v_hclust) {
+    hc <- L_hclust[[j]][[k]]
+    if (is.unsorted(hc$height)) {
+      hc$height <- sort(hc$height)
+    }
+    try({
+      M_coef.hclust[j, k] <- coef.hclust(hc)
+    }, silent = TRUE)
+  }
+}
+
+# Remove rows and columns with all NA values before ordering and printing
+M_coef.hclust <- M_coef.hclust[rowSums(is.na(M_coef.hclust)) != ncol(M_coef.hclust), ]
+M_coef.hclust <- M_coef.hclust[, colSums(is.na(M_coef.hclust)) != nrow(M_coef.hclust)]
+
+# Order and print coefficients matrix
+M_coef.hclust <- M_coef.hclust[
+  order(apply(X = M_coef.hclust, FUN = max, MARGIN = 1, na.rm = TRUE)),
+  order(apply(X = M_coef.hclust, FUN = max, MARGIN = 2, na.rm = TRUE))
+]
+
+print(M_coef.hclust, digits = 3)
+
+cutree(L_hclust[["euclidean"]][["ward.D"]], k = 4)
+```
+
+```{r}
+dev.new(width = 15, height = 10)  # Increase the plotting window size
+
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1, cex = 0.6)  # Adjust the text size
+
+# Plot the dendrogram with customized titles and axis labels
+plot(L_hclust[["euclidean"]][["single"]],
+     main = "Cluster Dendrogram using Euclidean Distance and Single Method",
+     xlab = "Samples",
+     ylab = "Height",
+     sub = "",
+     cex = 0.5,   # Reduce the size of the labels
+     las = 2)     # Rotate the x-axis labels
+```
+
+
+```{r}
+dev.new(width = 15, height = 10)  # Increase the plotting window size
+
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1, cex = 0.6)  # Adjust the text size
+
+# Plot the dendrogram with customized titles and axis labels
+plot(L_hclust[["euclidean"]][["ward.D"]],
+     main = "Cluster Dendrogram using Euclidean Distance and Ward.D Method",
+     xlab = "Samples",
+     ylab = "Height",
+     sub = "",
+     cex = 0.5,   # Reduce the size of the labels
+     las = 2)     # Rotate the x-axis labels
+```
+```{r}
+dev.new(width = 15, height = 10)  # Increase the plotting window size
+
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1, cex = 0.6)  # Adjust the text size
+
+# Plot the dendrogram with customized titles and axis labels
+plot(L_hclust[["euclidean"]][["average"]],
+     main = "Cluster Dendrogram using Euclidean Distance and Average Method",
+     xlab = "Samples",
+     ylab = "Height",
+     sub = "",
+     cex = 0.5,   # Reduce the size of the labels
+     las = 2)     # Rotate the x-axis labels
+```
+
+```{r}
+dev.new(width = 15, height = 10)  # Increase the plotting window size
+
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1, cex = 0.6)  # Adjust the text size
+
+# Plot the dendrogram with customized titles and axis labels
+plot(L_hclust[["euclidean"]][["average"]],
+     main = "Cluster Dendrogram using Euclidean Distance and Average Method",
+     xlab = "Samples",
+     ylab = "Height",
+     sub = "",
+     cex = 0.5,   # Reduce the size of the labels
+     las = 2)     # Rotate the x-axis labels
+```
+
+It appears that Euclidean, Minkowski, and Manhattan distances generally preform very well. We additionally observe that in general ward.D and ward.D2 consistently yield the highest coefficients across all of the distances we tested which indicates they provide the best clustering quality for our data set. 
+
+Below, we create additional plots to visualize the Euclidean distance. Although it doesn't perform the best, as seen in the table above, it is the easiest for most people to understand. One of the most important aspects of data analysis and science is ensuring that your stakeholders can process and understand your methods and results.
+
+```{r Hierarchical continued}
+# Silhouette for k = 2
+silhouette_2 <- cluster::silhouette(
+  cutree(L_hclust[["euclidean"]][["ward.D"]], k = 2),
+  dist_M[["euclidean"]]
+)
+plot(silhouette_2, main = "Silhouette Plot (Euclidean Distance, k=2)")
+
+# Silhouette for k = 3
+silhouette_3 <- cluster::silhouette(
+  cutree(L_hclust[["euclidean"]][["ward.D"]], k = 3),
+  dist_M[["euclidean"]]
+)
+plot(silhouette_3, main = "Silhouette Plot (Euclidean Distance, k=3)")
+
+# Silhouette for k = 4
+silhouette_4 <- cluster::silhouette(
+  cutree(L_hclust[["euclidean"]][["ward.D"]], k = 4),
+  dist_M[["euclidean"]]
+)
+plot(silhouette_4, main = "Silhouette Plot (Euclidean Distance, k=4)")
+
+# Silhouette for k = 5
+silhouette_5 <- cluster::silhouette(
+  cutree(L_hclust[["euclidean"]][["ward.D"]], k = 5),
+  dist_M[["euclidean"]]
+)
+plot(silhouette_5, main = "Silhouette Plot (Euclidean Distance, k=5)")
+
+plot(
+  prcomp_M$x,
+  col = cutree(L_hclust[["euclidean"]][["ward.D"]],k = 4) + 1,
+  pch = 19,
+  main = "Principal component plot of hierarchical clusters",
+  sub = "You can see the 4 distinct groups from the hierarchical clusters"
+)
+
+cluster.stats_M <- fpc::cluster.stats(
+  d = dist_M[["euclidean"]],
+  clustering = cutree(L_hclust[["euclidean"]][["ward.D"]],k = 2),
+  alt.clustering = cutree(L_hclust[["euclidean"]][["ward.D"]],k = 3),
+  noisecluster = FALSE,
+  silhouette = TRUE,
+  G2 = TRUE,
+  G3 = TRUE,
+  wgap = TRUE,
+  sepindex = TRUE,
+  sepprob = 0.1,
+  sepwithnoise = TRUE,
+  compareonly = FALSE,
+  aggregateonly = FALSE
+)
+
+#print(cluster.stats_M)
+```
+With $k = 4$, we found the best silhouette width of $0.59$, which indicates fairly good clustering quality. The principal component plot visually demonstrates how the hierarchical clustering categorizes the data into four distinct groups. This visualization helps to understand the distribution and separation of the clusters in the data set.
+
+
+```{r}
+list_dist <- lapply(
+  X = v_dist,
+  FUN = function(distance_method) dist(
+    x = scale_M,
+    method = distance_method
+  )
+)
+names(list_dist) <- v_dist
+list_hclust <- list()
+for(j in v_dist) for(k in v_hclust) list_hclust[[j]][[k]] <- hclust(
+  d = list_dist[[j]],
+  method = k
+)
+par(
+  mfrow = c(length(v_dist),length(v_hclust)),
+  mar = c(0,0,0,0),
+  mai = c(0,0,0,0),
+  oma = c(0,0,0,0)
+)
+for(j in v_dist) for(k in v_hclust) plot(
+  x = list_hclust[[j]][[k]],
+  labels = FALSE,
+  axes = FALSE,
+  main = paste("\n",j,"\n",k)
+)
+```
+
+
+```{r Euclidean plots}
+plot(
+  x = list_hclust[["euclidean"]][["ward.D"]],
+  main = "Euclidean Ward's D Hierarchical",
+  sub = ""
+)
+plot(
+  x = list_hclust[["euclidean"]][["single"]],
+  main = "Euclidean Single Hierarchical",
+  sub = "We can see a possible outlier in obs 170"
+)
+
+plot(
+  x = list_hclust[["euclidean"]][["average"]],
+  main = "Euclidean Average Hierarchical",
+  sub = "We can see a possible outlier in obs 170"
+)
+```
+As stated above we went with the most frequently used Euclidean distance. We also decided to take a closer look at both single linkage and Wards D. Looking at our Single linkage it seems that observation 170 may be an outlier in the data set.So we may want to remove this value after reviewing it with more subject knowledge. The Silhouette for Wards D looks really good though so I would personally choose wards D after checking 170.
+
+## Model Based clustering
+
+```{r Model Based}
+Mclust_meter <- Mclust(
+  data = meter,
+  G = 3
+)
+Mclust_meter
+
+summary(
+  object = Mclust_meter
+)
+
+logLik(
+  object = Mclust_meter
+)
+
+predict(
+  object = Mclust_meter
+)
+plot(
+  x = Mclust_meter,
+  what = "BIC"
+)
+title(
+  main = "BIC Values for Model Selection",
+  sub = "We can see that EII has the lowest BIC",
+  adj = 0.5
+)
+plot(
+  x = Mclust_meter,
+  what = "classification"
+)
+
+plot(
+  x = Mclust_meter,
+  what = "uncertainty"
+)
+```
+
+```{r Model Based Continued}
+v_emModelNames <- mclust.options("emModelNames")
+names(v_emModelNames) <- v_emModelNames
+for(j in v_emModelNames) v_emModelNames[j] <- mclustModelNames(j)$type
+data.frame(
+  model = v_emModelNames
+)
+
+list_Mclust <- list()
+for(j in names(v_emModelNames)){
+  list_Mclust[[j]] <- Mclust(
+    data = meter,
+    modelNames = j
+  )  
+  plot(
+    x = list_Mclust[[j]],
+    what = "classification",
+    sub = paste0("Number of clusters = ",list_Mclust[[j]]$G,", BIC = ",round(list_Mclust[[j]]$bic))
+  )
+  title(
+    main = paste(
+      "Model based clustering of meter data\n",j
+    )
+  )
+}
+
+hc_meter <- hc(
+  data = meter,
+  modelName = "EII"
+)
+# Plot the model
+plot(
+  hc_meter,
+  main = "",
+  xlab = "Samples",
+  ylab = "Height"
+)
+title(
+  main = "Hierarchical Clustering Dendrogram",
+  sub = "Model: EII",
+  adj = 0.5
+)
+
+```
+We suggest to utilze EII for the model. It has the lowest BIC value and the hierarchical cluster looks good.
+
+## Variable clustering
+
+### Transpose Method
+
+```{r Transpose}
+t_M <- t(M)
+v_dist <- c("euclidean","maximum","manhattan","canberra","binary","minkowski")
+v_hclust <- c("ward.D","ward.D2","single","complete","average","mcquitty","median","centroid")
+
+M_coef <- matrix(
+  data = NA,
+  nrow = length(v_dist),
+  ncol = length(v_hclust),
+  dimnames = list(v_dist,v_hclust)
+)
+list_dist <- lapply(
+  X = v_dist,
+  FUN = function(x) dist(t_M,method = x)
+)
+names(list_dist) <- v_dist
+list_hclust <- list()
+for(j in v_dist) for(k in v_hclust) list_hclust[[j]][[k]] <- hclust(
+  d = list_dist[[j]],
+  method = k
+)
+for(j in v_dist) for(k in v_hclust) try({
+  list_hclust[[j]][[k]]$height <- rank(list_hclust[[j]][[k]]$height)
+  M_coef[j,k] <- cluster::coef.hclust(list_hclust[[j]][[k]])
+})
+
+for(j in v_dist) for(k in v_hclust) M_coef <- M_coef[order(M_coef[,k]),order(M_coef[j,])]
+M_coef
+
+par(mfrow = 1:2)
+plot(
+  x = list_hclust[["euclidean"]][["average"]],
+  main = "Euclidean Average Hierarchical",
+  sub = ""
+)
+
+plot(
+  x = list_hclust[["euclidean"]][["ward.D"]],
+  main = "Euclidean Ward's D Hierarchical",
+  sub = ""
+)
+
+kmeans_M <- kmeans(
+  x = t_M,
+  centers = 4
+)
+kmeans_M
+
+prcomp_t_M <- prcomp(t_M)
+plot(
+  x = prcomp_t_M$x[,1:2],
+  col = kmeans_M$cluster,
+  pch = ".",
+  main = "Clustered Data using K-means and PCA (Variable Clustering Transpose Method)"
+)
+text(
+  x = prcomp_t_M$x[,1:2],
+  col = kmeans_M$cluster,
+  labels = rownames(t_M)
+)
+```
+
+### ClustOfVar
+
+```{r ClustofVar}
+hclustvar_M <- ClustOfVar::hclustvar(
+  X.quanti = scale_M,
+  init = c(1,1,1,1,2,2,2,3,3,3)
+)
+ClustOfVar::print.hclustvar(hclustvar_M)
+ClustOfVar::plot.hclustvar(hclustvar_M)
+
+hclustvar_M <- ClustOfVar::hclustvar(
+  X.quanti = scale_M
+)
+
+stability_M <- ClustOfVar::stability(
+  tree = hclustvar_M,
+  B = 100,
+  graph = TRUE
+)
+
+ClustOfVar::print.hclustvar(hclustvar_M)
+ClustOfVar::plot.hclustvar(hclustvar_M, sub = "ClustOfVar Variable Clustering")
+
+
+```
+
+### Hmisc::varclus()
+
+```{r Hmisc::varclus}
+varclust_spearman_wardD <- Hmisc::varclus(
+  x = scale_M,
+  similarity = "spearman",
+  method = "ward.D"
+)
+plot(varclust_spearman_wardD)
+```
+
+Based on the three methods analyzed above, the ClustOfVar method is recommended. Specifically, cutting into 3 or 8 groups appears optimal according to the stability graph, which suggests these cluster numbers provide the best results. The Transpose method is not recommended, as the resulting clusters appear too disordered and lack clear separation.
+
+## Variable Selection
+
+PCA
+```{r Variable Selection}
+v_color <- viridis::viridis(4)
+names(v_color) <- sort(
+  x = unique(
+    x = meter$Health_State_of_Meter
+  )
+)
+v_color <- v_color[meter$Health_State_of_Meter]
+
+D <- meter[,colnames(meter) != "Health_State_of_Meter"]
+D <- scale(
+  x = D
+)
+prcomp_meter <- prcomp(
+  x = D,
+  center = FALSE,
+  scale. = FALSE
+)
+round(
+  x = summary(
+    object = prcomp_meter
+  )$importance,
+  digits = 2
+)
+biplot(
+  x = prcomp_meter
+)
+
+```
+
+```{r Variable Selection_2}
+D <- meter[!rownames(meter) %in% c("169","170","172","173"),colnames(meter) != "Health_State_of_Meter"]
+D <- scale(
+  x = D
+)
+prcomp_meter <- prcomp(
+  x = D,
+  center = FALSE,
+  scale. = FALSE
+)
+round(
+  x = summary(
+    object = prcomp_meter
+  )$importance,
+  digits = 2
+)
+
+plot(
+  x = prcomp_meter,
+  type = "l"
+)
+screeplot(
+  x = prcomp_meter
+)
+biplot(
+  x = prcomp_meter
+)
+```
+
+```{r Variable Selection_3}
+factoextra::fviz_eig(
+  X = prcomp_meter,
+  main = "Scree plot for Variable Selection"
+)
+factoextra::fviz_pca_ind(
+  prcomp_meter,
+  col.ind = "cos2",
+  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+  repel = TRUE
+)
+factoextra::fviz_pca_var(
+  X = prcomp_meter,
+  col.var = "contrib",
+  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+  repel = TRUE
+)
+factoextra::fviz_pca_biplot(
+  X = prcomp_meter,
+  repel = TRUE,
+  col.var = "#2E9FDF",
+  col.ind = "#696969"
+)
+pairs(prcomp_meter$x[,1:4],col = v_color,pch = 19)
+```
+The Scree Plot shows the first 2 or 3 dimensions capture the majority of the explained variance and are therefore the best to utilize.
+
+```{r Variable Selection_4}
+v <- sort(prcomp_meter$rotation[,"PC1"])
+v <- v[abs(v) > 0.15]
+M <- matrix(v)
+rownames(M) <- names(v)
+M
+
+par(las = 3)
+barplot(prcomp_meter$rotation[,"PC1"])
+```
+
+Above we seek to find what variables are most significant when compared with our target Health_State_of_Meter. We found that the variables that are likely to be the most strongly associated with the target variable Health_State_of_Meter.Are Gain5 and Gain6, with coefficients of 0.20, followed by Signal_Quality5, Signal_Strength2, and Signal_Strength1, all with coefficients of -0.20.
