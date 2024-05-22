@@ -8,9 +8,14 @@
 - [Model Based Clustering](#model-based-clustering)
 - [Variable Clustering](#variable-clustering)
 - [Variable Selection](#variable-selection)
+- [References](#references)
 
 ### Data Sources
 Meter Data: The primary dataset use for this analysis is the "Meter Data.xlsx" specifically from worksheet D, containing information about the state of the meters.
+
+### Project Categories
+
+**Data Science, Machine Learning, Statistical Analysis, Data Visualization, Cluster Analysis, R Programming, Variable Selection and Dimension Reduction**
 
 ### Project Goals
 
@@ -37,10 +42,19 @@ Meter Data: The primary dataset use for this analysis is the "Meter Data.xlsx" s
 
 ### Tools
 - R programming language - Data Analysis and Data Visualization
+  - [Download here](https://posit.co/download/rstudio-desktop/)
 
-### Libarary's Used 
+### Libraries Used
 
-
+- **dplyr:** Data manipulation and transformation.
+- **ggplot2:** Data visualization and plotting.
+- **cluster:** Clustering algorithms and methods.
+- **factoextra:** Visualizing clustering results and determining optimal number of clusters.
+- **NbClust:** Determining the number of clusters.
+- **clustvarsel:** Variable selection in clustering.
+- **mclust:** Model-based clustering.
+- **caret:** Classification and regression training.
+  
 ### K-Means Clustering Analysis
 
 Our goals with K-Means Clustering were to find out how many clusters there should be as well as visualize what each group looked like in order to ensure the groups are distinct.
@@ -165,3 +179,8 @@ The Scree Plot shows the first 2 or 3 dimensions capture the majority of the exp
   <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/9ee28568-3b7d-401f-aa92-c9861755dea6" alt="Scree Variable Selection" style="width: 60%; margin: 15px;">
 </div>
 Above we seek to find what variables are most significant when compared with our target Health_State_of_Meter. We found that the variables that are likely to be the most strongly associated with the target variable Health_State_of_Meter.Are Gain5 and Gain6, with coefficients of 0.20, followed by Signal_Quality5, Signal_Strength2, and Signal_Strength1, all with coefficients of -0.20.
+
+### References
+1. [Irene-arch](https://github.com/Irene-arch/Documenting_Example/blob/main/README.md)
+2. [Dr. Aaron Smith](https://www.statistics.ninja/home)
+
