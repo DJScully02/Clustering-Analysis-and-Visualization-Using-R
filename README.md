@@ -6,6 +6,8 @@
 - [K-Means Clustering Analysis](#k-means-clustering-analysis)
 - [Hierarchical Clustering Analysis](#hierarchical-clustering-analysis)
 - [Model Based Clustering](#model-based-clustering)
+- [Variable Clustering](#variable-clustering)
+- [Variable Selection](#variable-selection)
 
 ### Data Sources
 Meter Data: The primary dataset use for this analysis is the "Meter Data.xlsx" specifically from worksheet D, containing information about the state of the meters.
@@ -15,22 +17,18 @@ Meter Data: The primary dataset use for this analysis is the "Meter Data.xlsx" s
 1. **K-Means Clustering Analysis**
    - Apply k-means clustering to the predictor variables.
    - Justify the chosen number of clusters.
-   - Provide visualizations with titles including "K-Means".
 
 2. **Hierarchical Clustering Analysis**
    - Apply hierarchical clustering to the predictor variables.
    - Justify the choice of distance metric and clustering method.
-   - Provide visualizations with titles including "Hierarchical".
 
 3. **Model-Based Clustering Analysis**
    - Apply model-based clustering to the predictor variables.
    - Justify the assumed model used.
-   - Provide visualizations with titles including "Model Based".
 
 4. **Variable Clustering Analysis**
    - Apply variable clustering to the predictor variables.
    - Justify the chosen method of clustering.
-   - Provide visualizations with titles including "Variable Clustering".
 
 5. **Variable Selection**
    - Perform variable selection on the predictor variables.
@@ -39,6 +37,9 @@ Meter Data: The primary dataset use for this analysis is the "Meter Data.xlsx" s
 
 ### Tools
 - R programming language - Data Analysis and Data Visualization
+
+### Libarary's Used 
+
 
 ### K-Means Clustering Analysis
 
@@ -91,4 +92,76 @@ With k = 4, we found the best silhouette width of 0.59, which indicates fairly g
 As mentioned earlier, we opted to use the widely recognized Euclidean distance. Additionally, we examined both Single Linkage, Average Linkage, and Ward's D methods. Upon reviewing the Single Linkage and Average Linkage dendrograms, it appears that observation 170 may be an outlier in the dataset. This observation should be reviewed in detail with domain experts to determine whether it should be excluded from the analysis. The Silhouette score for Ward's D method is particularly high, indicating good clustering quality. Therefore, after addressing the potential outlier, Ward's D method would be the preferred choice for clustering.
 
 ### Model Based Clustering
+Here we will be using the Mclust library, 
 
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/17582408-ebaf-4058-915a-0c06dd2fb746" alt="Mclust BIC" style="width: 80%; margin: 20px;">
+</div>
+
+The BIC plot above compares the Bayesian Information Criterion values for various clustering models with three components. The model represented by the green circle (EII) has the lowest BIC value, indicating the best fit among the models tested. Other models, represented by different symbols, show higher BIC values, suggesting less optimal fits.
+
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/d4876ed3-389f-4bfa-89b2-57af05a8e22a" alt="EII Dendrogram" style="width: 45%; margin: 10px;">
+</div>
+
+### Variable Clustering
+
+#### Transpose Method
+
+| Distance Metric | single | mcquitty | average | complete | ward.D2 | ward.D | median | centroid |
+|-----------------|--------|----------|---------|----------|---------|--------|--------|----------|
+| binary          | 0.50   | 0.50     | 0.50    | 0.50     | 0.50    | 0.50   | 0.50   | 0.50     |
+| manhattan       | 0.63   | 0.63     | 0.63    | 0.63     | 0.64    | 0.65   | 0.63   | 0.63     |
+| maximum         | 0.60   | 0.60     | 0.60    | 0.61     | 0.61    | 0.63   |   NA   |   NA     |
+| euclidean       | 0.62   | 0.62     | 0.62    | 0.62     | 0.63    | 0.64   |   NA   |   NA     |
+| minkowski       | 0.62   | 0.62     | 0.62    | 0.62     | 0.63    | 0.64   |   NA   |   NA     |
+| canberra        | 0.66   | 0.67     | 0.67    | 0.67     | 0.68    | 0.68   |   NA   |   NA     |
+
+It appears that the Manhattan and Canberra distance metrics generally perform very well across most clustering methods. Additionally, we observe that the Ward.D and Ward.D2 methods consistently yield the highest coefficients across all distance metrics tested, indicating they provide the best clustering quality for our dataset. Notably, the maximum, Euclidean, and Minkowski distance metrics do not have values for the median and centroid methods, suggesting these methods may not be applicable or optimal for these distances in this context.
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/3e6a6ad3-cc0b-4dce-88f2-ca46f9b1dd3c" alt="Transpose Method Dendrogram" style="width: 60%; margin: 15px;">
+</div>
+
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/452210dc-022b-48d8-a4f0-eaac6ec05f45" alt="Transpose clusters" style="width: 60%; margin: 15px;">
+</div>
+While the table doesn't look like it provided the best results they do seem to have separated into clear groups.
+
+#### ClusofVar
+
+
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/35fe7fef-7406-4df0-8a49-59a99ff218c2" alt="ClustofVar Dendrogram" style="width: 60%; margin: 15px;">
+</div>
+
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/5d52bb5f-1889-4c36-9018-3feb4075099c" alt="Stability Chart" style="width: 60%; margin: 15px;">
+</div>
+
+#### Hmisc::varclus()
+
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/a4ba4d70-4303-4e63-a5eb-ed18fd4d8fba" alt="Hmisc varclus" style="width: 60%; margin: 15px;">
+</div>
+
+##### Results
+
+Based on the three methods analyzed above, we recommend the ClustOfVar method. Specifically, cutting into 3 or 8 groups appears optimal according to the stability graph, which suggests these cluster numbers provide the best results. The Transpose method is not recommended, as the resulting clusters appear too disordered and lack clear separation.
+
+### Variable Selection
+
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/2ed78cdc-bef8-49c4-89ec-b59049f0f243" alt="Scree Variable Selection" style="width: 60%; margin: 15px;">
+</div>
+
+The Scree Plot shows the first 2 or 3 dimensions capture the majority of the explained variance and are therefore the best to utilize.
+
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/b61f2983-1314-45f6-ac31-a1f8d4588552" alt="Variable Selection Full Columns" style="width: 90%; margin: 15px;">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/472c6ab7-ba8a-42c6-8453-7561f9405cc6" alt="Variable Selection Individual Points" style="width: 60%; margin: 15px;">
+</div>
+
+<div align="center">
+  <img src="https://github.com/DJScully02/Clustering-Analysis-and-Visualization-Using-R/assets/129353692/9ee28568-3b7d-401f-aa92-c9861755dea6" alt="Scree Variable Selection" style="width: 60%; margin: 15px;">
+</div>
+Above we seek to find what variables are most significant when compared with our target Health_State_of_Meter. We found that the variables that are likely to be the most strongly associated with the target variable Health_State_of_Meter.Are Gain5 and Gain6, with coefficients of 0.20, followed by Signal_Quality5, Signal_Strength2, and Signal_Strength1, all with coefficients of -0.20.
