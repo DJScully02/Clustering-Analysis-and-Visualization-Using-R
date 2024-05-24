@@ -19,7 +19,7 @@ library(ggplot2)
 
 
 ```{r init}
-meter <- read_excel("D:/portfolio_projects/data/Meter Data.xlsx", sheet = "D")
+meter <- read_excel("D:/Clustering-Analysis-and-Visualization-Using-R/data/Meter Data.xlsx", sheet = "D")
 
 set.seed(123) # Set seed for reproducibility
 
